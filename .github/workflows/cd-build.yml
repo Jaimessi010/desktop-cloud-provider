@@ -1,3 +1,4 @@
+
 name: Entrega Continua - Build
 
 on:
@@ -25,21 +26,56 @@ jobs:
           cache: true
 
       - name: Ejecutar pruebas unitarias
+        id: pruebas
         run: make test
 
       - name: Compilar proyecto
+        id: compilacion
         run: make build
 
       - name: Verificar ejecutable
+        id: verificacion
         run: |
           test -f bin/cloud-provider-kind
           ls -lh bin/cloud-provider-kind
           sha256sum bin/cloud-provider-kind
 
       - name: Guardar artefacto
+        id: artefacto
         uses: actions/upload-artifact@v4
         with:
           name: cloud-provider-kind-linux-amd64
           path: bin/cloud-provider-kind
           if-no-files-found: error
           retention-days: 7
+
+      - name: Mostrar resumen de resultados
+        if: always()
+        env:
+          PRUEBAS: ${{ steps.pruebas.outcome }}
+          COMPILACION: ${{ steps.compilacion.outcome }}
+          VERIFICACION: ${{ steps.verificacion.outcome }}
+          ARTEFACTO: ${{ steps.artefacto.outcome }}
+        run: |
+          echo "## Resultados de entrega continua" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Etapa | Resultado |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|---|---|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Pruebas unitarias | $PRUEBAS |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Compilacion | $COMPILACION |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Verificacion del ejecutable | $VERIFICACION |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Generacion del artefacto | $ARTEFACTO |" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+
+          if [[ "$PRUEBAS" == "success" &&
+                "$COMPILACION" == "success" &&
+                "$VERIFICACION" == "success" &&
+                "$ARTEFACTO" == "success" ]]; then
+            echo "### ✅ CONSTRUCCION EXITOSA" >> "$GITHUB_STEP_SUMMARY"
+            echo "El proyecto fue compilado y validado correctamente." >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "**Artefacto:** cloud-provider-kind-linux-amd64" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "### ❌ CONSTRUCCION NO COMPLETADA" >> "$GITHUB_STEP_SUMMARY"
+            echo "Revisar las etapas fallidas o no ejecutadas." >> "$GITHUB_STEP_SUMMARY"
+          fi
