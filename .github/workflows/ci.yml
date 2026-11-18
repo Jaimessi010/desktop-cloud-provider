@@ -1,3 +1,4 @@
+
 name: Integracion Continua - CI
 
 on:
@@ -15,7 +16,7 @@ permissions:
 jobs:
   build-and-test:
     name: Compilacion y pruebas
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Descargar repositorio
@@ -28,7 +29,36 @@ jobs:
           cache: true
 
       - name: Compilar proyecto
+        id: compilacion
         run: make build
 
       - name: Ejecutar pruebas unitarias
+        id: pruebas
         run: make test
+
+      - name: Mostrar resumen de resultados
+        if: always()
+        env:
+          COMPILACION: ${{ steps.compilacion.outcome }}
+          PRUEBAS: ${{ steps.pruebas.outcome }}
+        run: |
+          echo "## Resultados de integracion continua" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Etapa | Resultado |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|---|---|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Compilacion del proyecto | $COMPILACION |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Pruebas unitarias | $PRUEBAS |" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+
+          if [[ "$COMPILACION" == "success" &&
+                "$PRUEBAS" == "success" ]]; then
+            echo "### ✅ VALIDACION EXITOSA" >> "$GITHUB_STEP_SUMMARY"
+            echo "La compilacion y las pruebas unitarias finalizaron correctamente." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "### ❌ VALIDACION NO COMPLETADA" >> "$GITHUB_STEP_SUMMARY"
+            echo "Revisar los registros de las etapas fallidas." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Rama:** \`${GITHUB_REF_NAME}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Commit:** \`${GITHUB_SHA}\`" >> "$GITHUB_STEP_SUMMARY"
