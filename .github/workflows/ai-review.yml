@@ -10,6 +10,8 @@ on:
       - 'scripts/ai_analyzer.py'
       - '.github/workflows/ci.yml'
 
+  workflow_dispatch:
+
 permissions:
   contents: read
 
@@ -33,7 +35,26 @@ jobs:
       - name: Obtener rama principal
         run: git fetch origin main
 
+      - name: Verificar configuracion de IA
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          if [ -z "$OPENAI_API_KEY" ]; then
+            echo "ERROR: Falta OPENAI_API_KEY"
+            exit 1
+          fi
+
+          echo "Credencial de IA configurada"
+
       - name: Ejecutar analizador de IA
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: python scripts/ai_analyzer.py
+
+      - name: Confirmar analisis completado
+        if: success()
+        run: |
+          echo "### Analisis de IA finalizado" \
+            >> "$GITHUB_STEP_SUMMARY"
+          echo "El informe fue generado correctamente." \
+            >> "$GITHUB_STEP_SUMMARY"
