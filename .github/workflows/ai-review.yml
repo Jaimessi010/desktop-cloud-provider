@@ -1,0 +1,39 @@
+
+name: IA - Analisis de integracion continua
+
+on:
+  push:
+    branches:
+      - fix/compatibilidad-pruebas
+    paths:
+      - '.github/workflows/ai-review.yml'
+      - 'scripts/ai_analyzer.py'
+      - '.github/workflows/ci.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  analizar-cambios:
+    name: Revision mediante inteligencia artificial
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Obtener rama principal
+        run: git fetch origin main
+
+      - name: Ejecutar analizador de IA
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: python scripts/ai_analyzer.py
