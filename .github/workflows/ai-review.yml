@@ -1,14 +1,13 @@
 
-name: IA - Analisis de integracion continua
+name: IA - Validacion del analizador
 
 on:
   push:
     branches:
       - fix/compatibilidad-pruebas
     paths:
-      - '.github/workflows/ai-review.yml'
       - 'scripts/ai_analyzer.py'
-      - '.github/workflows/ci.yml'
+      - '.github/workflows/ai-review.yml'
 
   workflow_dispatch:
 
@@ -16,8 +15,8 @@ permissions:
   contents: read
 
 jobs:
-  analizar-cambios:
-    name: Revision mediante inteligencia artificial
+  validar-analizador:
+    name: Validacion del analizador de IA
     runs-on: ubuntu-24.04
 
     steps:
@@ -32,29 +31,22 @@ jobs:
         with:
           python-version: '3.12'
 
+      - name: Verificar sintaxis de Python
+        run: python -m py_compile scripts/ai_analyzer.py
+
       - name: Obtener rama principal
         run: git fetch origin main
 
-      - name: Verificar configuracion de IA
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      - name: Validar analizador
+        run: python scripts/ai_analyzer.py --check
+
+      - name: Generar resumen
         run: |
-          if [ -z "$OPENAI_API_KEY" ]; then
-            echo "ERROR: Falta OPENAI_API_KEY"
-            exit 1
-          fi
-
-          echo "Credencial de IA configurada"
-
-      - name: Ejecutar analizador de IA
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        run: python scripts/ai_analyzer.py
-
-      - name: Confirmar analisis completado
-        if: success()
-        run: |
-          echo "### Analisis de IA finalizado" \
-            >> "$GITHUB_STEP_SUMMARY"
-          echo "El informe fue generado correctamente." \
-            >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "## Validacion del analizador de IA"
+            echo ""
+            echo "Estado: validacion estructural completada."
+            echo ""
+            echo "El analisis con Ollama se ejecuta localmente."
+            echo "Este workflow no consulta un modelo de IA."
+          } >> "$GITHUB_STEP_SUMMARY"
